@@ -1,11 +1,3 @@
-import sys
+from src.objects.Game import run_game
 
-if len(sys.argv != 2):
-    raise Exception
-
-if sys.argv[1] == 'client':
-    print('Running in client mode')
-elif sys.argv[1] == 'server':
-    print('Running in server mode')
-else:
-    raise Exception
+run_game()
