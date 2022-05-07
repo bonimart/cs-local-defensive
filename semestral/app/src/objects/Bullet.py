@@ -1,9 +1,10 @@
-from src.objects.Movable import Movable
+from app.src.objects.ObjectCircle import ObjectCircle
 from utils.Vector import Vector
+from utils.config import config
 
 
-class Bullet(Movable):
-    def __init__(self, x, y):
+class Bullet(ObjectCircle):
+    def __init__(self, x, y, batch=None):
         pass
 
     def move(self):
