@@ -1,7 +1,7 @@
 config = {
     'player': {
-        'radius': 40,
-        'speed': 150,
+        'radius': 20,
+        'speed': 200,
         'max_hp': 100,
         'self_color': (0, 255, 255),
         'ally_color': (0, 255, 0),
@@ -12,8 +12,8 @@ config = {
         'speed': 10
     },
     'window': {
-        'height': 800,
-        'width': 800
+        'width': 1400,
+        'height': 800
     },
-    'frame_rate': 120
+    'frame_rate': 120.
 }
