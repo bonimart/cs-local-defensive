@@ -1,20 +1,28 @@
 from utils.config import config
 
+w = config['window']['width']
+h = config['window']['height']
+r = config['player']['radius']
+b = config['window']['border']
 """
 list of all static objects in the game in format (center_x, center_y, width, height)
 """
-mp = [(410, 200, 220, config['player']['radius']),
-      (880, 200, 370, config['player']['radius']),
-      (350, 450, 300, config['player']['radius']),
-      (850, 450, 300, config['player']['radius']),
-      (200, 600, 300, config['player']['radius']),
-      (900, 600, 200, config['player']['radius']),
-      (1300, 600, 200, config['player']['radius']),
-      (1000, 700, config['player']['radius'], 220),
-      (1000, 385, config['player']['radius'], 150),
-      (1220, 270, config['player']['radius'], 350),
-      (510, 500, config['player']['radius'], 350),
-      (160, 200, config['player']['radius'], 250),
-      (710, 50, config['player']['radius'], 100),
-      (510, 500, config['player']['radius'], 350),
-      ]
+mp = [
+    (0, 0, w, b),
+    (0, h-b, w, b),
+    (0, 0, b, h),
+    (w-b, 0, b, h),
+    (300+r, 200, 200, r),
+    (700, 200, 350-r, r),
+    (200, 450, 300, r),
+    (700, 450, 300, r),
+    (50+r, 600, 300, r),
+    (800, 600, 200, r),
+    (1200, 600, 200, r),
+    (1000, 600, r, 200),
+    (1000, 300+r, r, 150),
+    (1200, 100+r, r, 350),
+    (500, 350, r, 350),
+    (150, 100, r, 250),
+    (700, 0, r, 100)
+]
