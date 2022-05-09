@@ -1,9 +1,12 @@
 from src.objects.Player import Player
+from src.objects.Bullet import Bullet
+from src.objects.PlayerBot import PlayerBot
 from src.objects.ObjectRect import ObjectRect
 from src.objects.ObjectCircle import ObjectCircle
 from utils.config import config
 from utils.map import mp
 import pyglet
+import random
 
 
 class Game:
@@ -24,7 +27,20 @@ class Game:
         return ct_dead or t_dead
 
     def update_movable(self, obj, dt):
-        obj.update(dt)
+        if isinstance(obj, PlayerBot):
+            b = obj.update(dt, self.players)
+            if isinstance(b, Bullet):
+                shot_himself = False
+                for o in self.objects:
+                    if b.is_colliding(o):
+                        shot_himself = True
+                if shot_himself:
+                    obj.hp -= config['bullet']['damage']
+                else:
+                    self.bullets.add(b)
+        else:
+            obj.update(dt)
+
         for o in self.objects:
             if obj.is_colliding(o):
                 obj.resolve_collision(o)
@@ -43,6 +59,9 @@ class Game:
 
         for p in self.players:
             self.update_movable(p, dt)
+            for p2 in self.players - {p}:
+                if p.is_colliding(p2):
+                    p.resolve_collision(p2)
             for b in self.bullets:
                 if p.is_colliding(b):
                     hit.add(b)
@@ -51,7 +70,8 @@ class Game:
                 dead.add(p)
 
         for p in dead:
-            p.shape.color = (255, 0, 0)
+            p.shape.visible = False
+            self.players.remove(p)
 
         for b in hit:
             self.bullets.remove(b)
@@ -79,6 +99,9 @@ def run_game():
     r = pyglet.shapes.Rectangle(0, 0, win.width, win.height,
                                 color=config['color']['background'], batch=batch)
     p = Player(win.width//2, win.width//2, 0, batch)
+    for i in range(5):
+        g.players.add(PlayerBot(random.randrange(0, win.width),
+                      random.randrange(0, win.height), 0, batch=batch, color=config['color']['enemy']))
     g.players.add(p)
 
     for o in mp:
