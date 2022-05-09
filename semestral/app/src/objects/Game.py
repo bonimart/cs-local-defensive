@@ -10,11 +10,12 @@ import random
 
 
 class Game:
-    def __init__(self, win, walls):
+    def __init__(self, win, walls, debug=False):
         self.players = set()
         self.bullets = set()
         self.objects = set()
         self.win = win
+        self.debug = debug
 
     def isOver(self):
         t_dead = True
@@ -28,25 +29,55 @@ class Game:
 
     def update_movable(self, obj, dt):
         if isinstance(obj, PlayerBot):
-            b = obj.update(dt, self.players)
-            if isinstance(b, Bullet):
-                shot_himself = False
-                for o in self.objects:
-                    if b.is_colliding(o):
-                        shot_himself = True
-                if shot_himself:
-                    obj.hp -= config['bullet']['damage']
-                else:
-                    self.bullets.add(b)
-        else:
-            obj.update(dt)
+            self.update_bot(obj, dt)
+
+        obj.update(dt)
 
         for o in self.objects:
             if obj.is_colliding(o):
                 obj.resolve_collision(o)
 
-        obj.shape.x = obj.pos.x
-        obj.shape.y = obj.pos.y
+    def update_bot(self, bot, dt):
+        seen_walls = set()
+        for wall in self.objects:
+            if bot.search_radius.is_colliding(wall):
+                seen_walls.add(wall)
+
+        if bot.state == "search":
+            bot.shape.color = config['color']['ally']
+            seen = set()
+            bot.timer = max(0, bot.timer - dt)
+            for p in self.players - {bot}:
+                if bot.search_radius.is_colliding(p) and bot.can_see(p, seen_walls):
+                    seen.add(p)
+            if seen != set():
+                bot.target = random.sample(seen, 1)[0]
+                bot.state = "kill"
+
+        elif bot.state == "kill":
+            bot.shape.color = config['color']['enemy']
+            if bot.target in self.players and bot.search_radius.is_colliding(bot.target) and bot.can_see(bot.target, seen_walls):
+                if self.debug:
+                    bot.l = pyglet.shapes.Line(
+                        bot.pos.x, bot.pos.y, bot.target.pos.x, bot.target.pos.y, batch=bot.shape._batch)
+                if bot.timer == 0:
+                    bot.timer = config['bot']['kill_cd']*(1 + random.random())
+                    b = bot.shoot(bot.target.pos.x, bot.target.pos.y)
+                    shot_himself = False
+                    for o in self.objects:
+                        if b.is_colliding(o):
+                            shot_himself = True
+                    if shot_himself:
+                        bot.hp -= config['bullet']['damage']
+                    else:
+                        self.bullets.add(b)
+
+                else:
+                    bot.timer = max(0, bot.timer - dt)
+            else:
+                bot.l = None
+                bot.target = None
+                bot.state = "search"
 
     def update(self, dt):
         """Updates all game entities
@@ -93,15 +124,21 @@ def run_game():
         config['window']['width'], config['window']['height'])
     batch = pyglet.graphics.Batch()
 
-    g = Game(win, mp)
+    g = Game(win, mp, debug=False)
 
     #r = ObjectRect(120, 200, 100, 200, batch=batch)
     r = pyglet.shapes.Rectangle(0, 0, win.width, win.height,
                                 color=config['color']['background'], batch=batch)
     p = Player(win.width//2, win.width//2, 0, batch)
     for i in range(5):
-        g.players.add(PlayerBot(random.randrange(0, win.width),
-                      random.randrange(0, win.height), 0, batch=batch, color=config['color']['enemy']))
+        b = PlayerBot(random.randrange(0, win.width),
+                      random.randrange(0, win.height), 0, batch=batch, color=config['color']['enemy'])
+        if g.debug:
+            b.search_radius.shape.visible = True
+            b.search_radius.shape.opacity = 40
+        else:
+            b.search_radius.shape.visible = False
+        g.players.add(b)
     g.players.add(p)
 
     for o in mp:
