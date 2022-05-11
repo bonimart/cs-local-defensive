@@ -9,8 +9,8 @@ import random
 class PlayerBot(Player):
     # STATES: SEARCH, KILL
 
-    def __init__(self, x, y, rotation, batch, color=(255, 255, 255)):
-        super().__init__(x, y, rotation, batch, vel=Vector(
+    def __init__(self, x, y, team, batch=None, color=(255, 255, 255)):
+        super().__init__(x, y, team, batch=batch,  vel=Vector(
             random.random(), random.random()).normalize())
         self.shape.color = color
         self.state = "search"
@@ -32,8 +32,22 @@ class PlayerBot(Player):
         self.search_radius.pos = self.pos
         self.search_radius.shape.x = self.pos.x
         self.search_radius.shape.y = self.pos.y
+        if self.state == "search":
+            p = self.vel
+        elif self.state == "kill":
+            p = (self.target.pos - self.pos).normalize()
+
+        self.gun.x = self.pos.x + p.x * self.r
+        self.gun.y = self.pos.y + p.y * self.r
+        self.gun.x2 = self.pos.x + p.x * \
+            (self.r + config['gun']['length'])
+        self.gun.y2 = self.pos.y + p.y * \
+            (self.r + config['gun']['length'])
 
     def resolve_collision(self, other):
         self.vel = Vector(random.choice([-1, 1])*random.random(),
                           random.choice([-1, 1])*random.random()).normalize()
         super().resolve_collision(other)
+
+    def update_timer(self, dt):
+        max(0, self.timer - dt)

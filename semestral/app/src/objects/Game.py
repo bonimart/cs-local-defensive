@@ -5,27 +5,23 @@ from src.objects.ObjectRect import ObjectRect
 from src.objects.ObjectCircle import ObjectCircle
 from utils.config import config
 from utils.map import mp
+from utils.Vector import Vector
+from math import sqrt
 import pyglet
 import random
 
 
-class Game:
-    def __init__(self, win, walls, debug=False):
-        self.players = set()
-        self.bullets = set()
-        self.objects = set()
-        self.win = win
-        self.debug = debug
+class GameView:
+    def __init__(self, players, walls, bullets):
+        self.bullets = bullets
+        self.walls = walls
+        self.players = players
 
-    def isOver(self):
-        t_dead = True
-        ct_dead = True
-        for p in self.players:
-            if p.team == 'T':
-                t_dead = False
-            elif p.team == 'CT':
-                ct_dead = False
-        return ct_dead or t_dead
+class Game:
+    def __init__(self, walls, players):
+        self.players = players
+        self.bullets = set()
+        self.walls = set()
 
     def update_movable(self, obj, dt):
         if isinstance(obj, PlayerBot):
@@ -33,29 +29,29 @@ class Game:
 
         obj.update(dt)
 
-        for o in self.objects:
+        for o in self.walls:
             if obj.is_colliding(o):
                 obj.resolve_collision(o)
 
     def update_bot(self, bot, dt):
         seen_walls = set()
-        for wall in self.objects:
+        for wall in self.walls:
             if bot.search_radius.is_colliding(wall):
                 seen_walls.add(wall)
 
+        # bot is searching for its prey
         if bot.state == "search":
-            bot.shape.color = config['color']['ally']
             seen = set()
-            bot.timer = max(0, bot.timer - dt)
+            bot.update_timer(dt)
             for p in self.players - {bot}:
-                if bot.search_radius.is_colliding(p) and bot.can_see(p, seen_walls):
+                if bot.search_radius.is_colliding(p) and bot.can_see(p, seen_walls) and p.team != bot.team:
                     seen.add(p)
             if seen != set():
                 bot.target = random.sample(seen, 1)[0]
                 bot.state = "kill"
 
+        # bot is hunting the target
         elif bot.state == "kill":
-            bot.shape.color = config['color']['enemy']
             if bot.target in self.players and bot.search_radius.is_colliding(bot.target) and bot.can_see(bot.target, seen_walls):
                 if self.debug:
                     bot.l = pyglet.shapes.Line(
@@ -64,7 +60,7 @@ class Game:
                     bot.timer = config['bot']['kill_cd']*(1 + random.random())
                     b = bot.shoot(bot.target.pos.x, bot.target.pos.y)
                     shot_himself = False
-                    for o in self.objects:
+                    for o in self.walls:
                         if b.is_colliding(o):
                             shot_himself = True
                     if shot_himself:
@@ -73,9 +69,13 @@ class Game:
                         self.bullets.add(b)
 
                 else:
-                    bot.timer = max(0, bot.timer - dt)
+                    bot.update_timer(dt)
+                #stay in a
+                bot.vel = (bot.vel + (bot.target.pos -
+                           bot.pos) *
+                           (((bot.target.pos - bot.pos).norm() - bot.search_radius.r/2)
+                           / config['bot']['attraction_coefficient'])).normalize()
             else:
-                bot.l = None
                 bot.target = None
                 bot.state = "search"
 
@@ -96,12 +96,13 @@ class Game:
             for b in self.bullets:
                 if p.is_colliding(b):
                     hit.add(b)
-                    p.hp -= config['bullet']['damage']
+                    if b.team != p.team:
+                        p.hp -= config['bullet']['damage']
             if p.hp <= 0:
                 dead.add(p)
 
         for p in dead:
-            p.shape.visible = False
+            p.die()
             self.players.remove(p)
 
         for b in hit:
@@ -118,21 +119,24 @@ class Game:
         for b in exploded:
             self.bullets.remove(b)
 
+        return self
+
 
 def run_game():
     win = pyglet.window.Window(
         config['window']['width'], config['window']['height'])
     batch = pyglet.graphics.Batch()
+    wall_batch = pyglet.graphics.Batch()
 
-    g = Game(win, mp, debug=False)
-
-    #r = ObjectRect(120, 200, 100, 200, batch=batch)
-    r = pyglet.shapes.Rectangle(0, 0, win.width, win.height,
-                                color=config['color']['background'], batch=batch)
-    p = Player(win.width//2, win.width//2, 0, batch)
-    for i in range(5):
+    g = Game(mp, set())
+    p = Player(win.width//2, win.width//2, "CT", batch=batch)
+    for i in range(2):
         b = PlayerBot(random.randrange(0, win.width),
-                      random.randrange(0, win.height), 0, batch=batch, color=config['color']['enemy'])
+                      random.randrange(0, win.height), "CT", batch=batch, color=config['color']['ally'])
+        g.players.add(b)
+    for i in range(3):
+        b = PlayerBot(random.randrange(0, win.width),
+                      random.randrange(0, win.height), "T", batch=batch, color=config['color']['enemy'])
         if g.debug:
             b.search_radius.shape.visible = True
             b.search_radius.shape.opacity = 40
@@ -141,9 +145,11 @@ def run_game():
         g.players.add(b)
     g.players.add(p)
 
+    bg = pyglet.shapes.Rectangle(0, 0, win.width, win.height,
+                                 color=config['color']['background'], batch=wall_batch)
     for o in mp:
-        g.objects.add(ObjectRect(
-            *o, color=config['color']['wall'], batch=batch))
+        g.walls.add(ObjectRect(
+            *o, color=config['color']['wall'], batch=wall_batch))
 
     win.push_handlers(p.key_handler)
     pyglet.clock.schedule_interval(g.update, 1 / config['frame_rate'])
@@ -151,13 +157,18 @@ def run_game():
     @win.event
     def on_draw():
         win.clear()
+        wall_batch.draw()
         batch.draw()
+
+    @win.event
+    def on_mouse_motion(x, y, dx, dy):
+        p.rotation = Vector(x+dx, y+dy)
 
     @win.event
     def on_mouse_press(x, y, button, modifiers):
         b = p.shoot(x, y)
         shot_himself = False
-        for o in g.objects:
+        for o in g.walls:
             if b.is_colliding(o):
                 shot_himself = True
         if shot_himself:
