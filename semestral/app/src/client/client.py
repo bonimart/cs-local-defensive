@@ -1,6 +1,7 @@
 import socket
 import pickle
 import pyglet
+import time
 
 
 def run_client(addr, port):
@@ -12,13 +13,53 @@ def run_client(addr, port):
     except:
         print("Something went wrong")
 
-    try:
-        print(f"Received {pickle.loads(s.recv(4096))}")
-    except:
-        print("Couldn't receive data")
+    # default status, means we were not allowed to join the game or that the game ended later on
 
+    status = "end"
     try:
-        s.send(pickle.dumps("Čusé"))
-        print("Sent data")
-    except socket.error:
-        print("Couldn't send data")
+        status = pickle.loads(s.recv(4096))
+        print("Received game status")
+    except:
+        print("Couldn't receive game status")
+
+    connected = False
+    while status != "end":
+        connected = True
+        print(f"status: '{status}'")
+        time.sleep(2)
+
+        try:
+            s.send(pickle.dumps("connected"))
+        except socket.error as e:
+            print("Couldn't send connection status")
+            print(e)
+        # load map here
+        if status == "lobby":
+            pass
+        elif status == "start":
+            try:
+                game_map = pickle.loads(s.recv(4096))
+                print(game_map)
+                s.send(pickle.dumps("received"))
+            except:
+                print("Couldn't receive game map")
+        # game_loop
+        elif status == "game":
+            try:
+                player_positions = pickle.loads(s.recv(4096))
+                print(player_positions)
+                s.send(pickle.dumps("received"))
+            except:
+                print("Couldn't receive player positions")
+
+        else:
+            print("Received unknown status")
+            break
+
+        try:
+            status = pickle.loads(s.recv(4096))
+        except:
+            print("Couldn't receive game status")
+            status = "end"
+
+    s.close()
