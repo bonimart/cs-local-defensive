@@ -18,6 +18,9 @@ class Vector:
     def __add__(self, other):
         return Vector(self.x + other.x, self.y + other.y)
 
+    def __sub__(self, other):
+        return Vector(self.x - other.x, self.y - other.y)
+
     def __mul__(self, other):
         return Vector(self.x * other, self.y * other)
 
