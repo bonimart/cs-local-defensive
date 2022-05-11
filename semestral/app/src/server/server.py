@@ -4,40 +4,59 @@ import _thread
 import random
 import pickle
 import pyglet
+import copy
 from utils.config import config
 from utils.map import mp
-from src.objects.Game import Game
+from src.objects.Game import Game, GameNew
+from src.objects.Player import Player
 from src.objects.ObjectCircle import ObjectCircle
+from src.objects.PlayerBot import PlayerBot
+
+
+class Client:
+    def __init__(self):
+        self.player = None
+        self.ready = False
+
 
 status = "lobby"
-players = {}
+clients = {}
+players = set()
 positions = []
+bullets = []
+game = GameNew(mp, players)
 
 
 def generate_player_positions(walls):
+    global players
+
     positions = []
     for i in range(config['num_of_players']):
         # terrorist
         if i % 2:
             collides = True
             while collides:
-                collides = False
+                colliding = False
                 x = random.randint(0, config['window']['width']/2)
                 y = random.randint(0, config['window']['height']/2)
                 c = ObjectCircle(x, y, config['player']['radius'])
                 for w in walls:
                     if c.is_colliding(w):
-                        collides = True
+                        colliding = True
                 for p in positions:
                     if c.is_colliding(p):
-                        collides = True
+                        colliding = True
+                collides = colliding
             positions.append(c)
+            b = PlayerBot(x, y, "T", batch=None)
+            b.id = i
+            players.add(b)
 
         # counter-terrorist
         else:
             collides = True
             while collides:
-                collides = False
+                colliding = False
                 x = random.randint(
                     config['window']['width']/2, config['window']['width'])
                 y = random.randint(
@@ -45,19 +64,24 @@ def generate_player_positions(walls):
                 c = ObjectCircle(x, y, config['player']['radius'])
                 for w in walls:
                     if c.is_colliding(w):
-                        collides = True
+                        colliding = True
                 for p in positions:
                     if c.is_colliding(p):
-                        collides = True
+                        colliding = True
+                collides = colliding
             positions.append(c)
+            b = PlayerBot(x, y, "CT", batch=None)
+            b.id = i
+            players.add(b)
 
-    return [(p.pos.x, p.pos.y) for p in positions]
+    return [[p.pos.x, p.pos.y] for p in positions]
 
 
 def client_thread(s, player_id):
     global status
     global players
     global positions
+    global game
     # print(status)
     # s.send(pickle.dumps(status))
     while status != "end":
@@ -88,15 +112,17 @@ def client_thread(s, player_id):
                     print(f"Received wrong reply from {player_id}")
                     break
                 else:
-                    players[player_id] = True
+                    clients[player_id].ready = True
 
                 everyone_ready = True
-                for key, val in players.items():
-                    if val == False:
+                for client in clients.values():
+                    if client.ready == False:
                         everyone_ready = False
                 if everyone_ready:
                     positions = generate_player_positions(mp)
                     status = "game"
+                    _thread.start_new_thread(game.run, ())
+
                     print(f"Everyone ready, starting the game")
 
             elif status == "game":
@@ -108,21 +134,18 @@ def client_thread(s, player_id):
                     print(f"Received wrong reply from {player_id}")
                     break
 
-                pos = tuple(positions)
-                s.send(pickle.dumps(pos))
+                plrs = {p.id: (p.pos.x, p.pos.y, p.team) for p in game.players}
+                blts = {b.id: (b.pos.x, b.pos.y) for b in game.bullets}
+                s.send(pickle.dumps((plrs, blts)))
                 # 11 bytes
                 reply = pickle.loads(s.recv(4096))
-                print(f"received {reply} from {player_id}")
-                if reply != f"received":
-                    print(f"Received wrong reply from {player_id}")
-                    break
 
         except Exception as e:
             print(print(e))
             print(f"Couldn't receive data from {player_id}")
             break
 
-    print("Thread is dying")
+    print("CLIENT_THREAD: Killing thread")
     s.shutdown(1)
     return
 
@@ -168,14 +191,14 @@ def run_server(host, port):
     except socket.error as e:
         print("Socket creation failed with error", str(e))
 
-    s.listen(1)
+    s.listen(config['num_of_players'])
     print("Sever started, waiting for a connection")
 
     running = True
     _thread.start_new_thread(input_thread, (s,))
     print("Type 'help' to list possible commands")
 
-    player_id = 0
+    client_id = 0
     status = "lobby"
     while running:
         try:
@@ -189,9 +212,9 @@ def run_server(host, port):
             sock.close()
         else:
             print("Connected to:", addr)
-            _thread.start_new_thread(client_thread, (sock, player_id))
-            players[player_id] = False
-            player_id += 1
+            _thread.start_new_thread(client_thread, (sock, client_id))
+            clients[client_id] = Client()
+            client_id += 1
 
     status = "end"
     print("Server is shutting down")
