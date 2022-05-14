@@ -7,10 +7,20 @@ import pyglet
 import copy
 from utils.config import config
 from utils.map import mp
+from utils.Vector import Vector
 from src.objects.Game import Game, GameNew
 from src.objects.Player import Player
 from src.objects.ObjectCircle import ObjectCircle
 from src.objects.PlayerBot import PlayerBot
+
+
+status = "lobby"
+clients = {}
+players = set()
+positions = []
+bullets = []
+gameSave = GameNew(mp, players)
+game = None
 
 
 class Client:
@@ -19,60 +29,68 @@ class Client:
         self.ready = False
 
 
-status = "lobby"
-clients = {}
-players = set()
-positions = []
-bullets = []
-game = GameNew(mp, players)
+class PlayerData:
+    def __init__(self, p):
+        self.pos = p.pos
+        self.gun = (Vector(p.gun.x, p.gun.y), Vector(p.gun.x2, p.gun.y2))
+        self.team = p.team
 
 
-def generate_player_positions(walls):
+def generate_position(walls, players, range_x, range_y):
+    collides = True
+    while collides:
+        collides = False
+        x = random.randint(*range_x)
+        y = random.randint(*range_y)
+        c = ObjectCircle(x, y, config['player']['radius'])
+        for w in walls:
+            if c.is_colliding(w):
+                collides = True
+        for p in players:
+            if c.is_colliding(p):
+                colliding = True
+    return c
+
+
+def generate_player_positions(walls, game):
     global players
+    global client_id
 
+    players = set()
+    m = max(clients.keys()) + 1
+    #print(f"Maximum is {m}")
+    l = len(clients.keys())
+    #print(f"Length is {l}")
+    ids = [k for k in clients.keys()]
+    for j in [m+i for i in range(0, config['num_of_players']-l)]:
+        ids.append(j)
+    random.shuffle(ids)
     positions = []
-    for i in range(config['num_of_players']):
+    for i in range(len(ids)):
+        #print(f"Iterating id: {i}")
         # terrorist
         if i % 2:
-            collides = True
-            while collides:
-                colliding = False
-                x = random.randint(0, config['window']['width']/2)
-                y = random.randint(0, config['window']['height']/2)
-                c = ObjectCircle(x, y, config['player']['radius'])
-                for w in walls:
-                    if c.is_colliding(w):
-                        colliding = True
-                for p in positions:
-                    if c.is_colliding(p):
-                        colliding = True
-                collides = colliding
+            c = generate_position(
+                walls, positions, (0, config['window']['width']/2), (0, config['window']['height']))
             positions.append(c)
-            b = PlayerBot(x, y, "T", batch=None)
-            b.id = i
-            players.add(b)
+            if ids[i] in clients.keys():
+                b = Player(c.pos.x, c.pos.y, "T", batch=None)
+            else:
+                b = PlayerBot(c.pos.x, c.pos.y, "T", batch=None)
+            b.id = ids[i]
+            game.players.add(b)
 
         # counter-terrorist
         else:
-            collides = True
-            while collides:
-                colliding = False
-                x = random.randint(
-                    config['window']['width']/2, config['window']['width'])
-                y = random.randint(
-                    0, config['window']['height'])
-                c = ObjectCircle(x, y, config['player']['radius'])
-                for w in walls:
-                    if c.is_colliding(w):
-                        colliding = True
-                for p in positions:
-                    if c.is_colliding(p):
-                        colliding = True
-                collides = colliding
+            c = generate_position(
+                walls, positions, (config['window']['width']/2, config['window']['width']), (0, config['window']['height']))
             positions.append(c)
-            b = PlayerBot(x, y, "CT", batch=None)
-            b.id = i
-            players.add(b)
+            if ids[i] in clients.keys():
+                b = Player(c.pos.x, c.pos.y, "CT", batch=None)
+            else:
+                b = PlayerBot(c.pos.x, c.pos.y, "CT", batch=None)
+            b.id = ids[i]
+            game.players.add(b)
 
     return [[p.pos.x, p.pos.y] for p in positions]
 
@@ -82,8 +100,7 @@ def client_thread(s, player_id):
     global players
     global positions
     global game
-    # print(status)
-    # s.send(pickle.dumps(status))
+
     while status != "end":
         reply = None
         try:
@@ -91,7 +108,7 @@ def client_thread(s, player_id):
                 s.send(pickle.dumps(status))
                 # 11 bytes
                 reply = pickle.loads(s.recv(4096))
-                print(f"received {reply} from {player_id}")
+                #print(f"received {reply} from {player_id}")
                 if reply != f"connected":
                     print(f"Received wrong reply from {player_id}")
                     break
@@ -100,7 +117,7 @@ def client_thread(s, player_id):
                 s.send(pickle.dumps(status))
                 # 11 bytes
                 reply = pickle.loads(s.recv(4096))
-                print(f"received {reply} from {player_id}")
+                #print(f"received {reply} from {player_id}")
                 if reply != f"connected":
                     print(f"Received wrong reply from {player_id}")
                     break
@@ -119,26 +136,41 @@ def client_thread(s, player_id):
                     if client.ready == False:
                         everyone_ready = False
                 if everyone_ready:
-                    positions = generate_player_positions(mp)
+                    game = copy.deepcopy(gameSave)
+                    positions = generate_player_positions(mp, game)
                     status = "game"
                     _thread.start_new_thread(game.run, ())
+
+                    for p in game.players:
+                        if p.id == player_id:
+                            threaded_player = p
 
                     print(f"Everyone ready, starting the game")
 
             elif status == "game":
+                if game.isOver():
+                    status = "lobby"
+                    continue
                 s.send(pickle.dumps(status))
                 # 11 bytes
                 reply = pickle.loads(s.recv(4096))
-                print(f"received {reply} from {player_id}")
+                #print(f"received {reply} from {player_id}")
                 if reply != f"connected":
                     print(f"Received wrong reply from {player_id}")
                     break
 
-                plrs = {p.id: (p.pos.x, p.pos.y, p.team) for p in game.players}
+                plrs = {p.id: PlayerData(p) for p in game.players}
                 blts = {b.id: (b.pos.x, b.pos.y) for b in game.bullets}
                 s.send(pickle.dumps((plrs, blts)))
                 # 11 bytes
                 reply = pickle.loads(s.recv(4096))
+
+                if threaded_player in game.players:
+                    threaded_player.mouse_pos.x = reply.m_x
+                    threaded_player.mouse_pos.y = reply.m_y
+                    threaded_player.mouse_press = reply.m_press
+                    threaded_player.vel.x = reply.x
+                    threaded_player.vel.y = reply.y
 
         except Exception as e:
             print(print(e))
@@ -146,7 +178,7 @@ def client_thread(s, player_id):
             break
 
     print("CLIENT_THREAD: Killing thread")
-    s.shutdown(1)
+    s.close()
     return
 
 
@@ -157,8 +189,7 @@ def input_thread(s):
     while inp != "exit":
         inp = input()
         if inp == "help":
-            print("""
-***USAGE:***:
+            print("""***USAGE:***:
     start: starts a new game
     exit: shuts the server down""")
         elif inp == "start":
