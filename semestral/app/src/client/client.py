@@ -76,6 +76,11 @@ def run_client_game(rec, send, status_list):
     def update_moving(dt):
         for i in players.keys():
             try:
+                if rec.players[i].id == rec.main_player.id:
+                    if rec.main_player.dash_cooldown > 0:
+                        players[i].color = config['color']['cooldown']
+                    else:
+                        players[i].color = config['color']['self']
                 players[i].x = rec.players[i].pos.x
                 players[i].y = rec.players[i].pos.y
                 guns[i].x = rec.players[i].gun[0].x
@@ -107,7 +112,7 @@ def run_client_game(rec, send, status_list):
     pyglet.clock.schedule_interval(update_keys, 1/config['update_rate'])
     pyglet.clock.schedule_interval(update_moving, 1/config['update_rate'])
 
-    @win.event
+    @ win.event
     def on_draw():
         if "game" not in status_list:
             pyglet.clock.unschedule(update_keys)
@@ -118,12 +123,12 @@ def run_client_game(rec, send, status_list):
         moving_batch.draw()
         fps_display.draw()
 
-    @win.event
+    @ win.event
     def on_mouse_motion(x, y, dx, dy):
         send.m_x = x + dx
         send.m_y = y + dy
 
-    @win.event
+    @ win.event
     def on_mouse_press(x, y, button, modifiers):
         send.m_press = True
 
@@ -166,7 +171,7 @@ def run_client(addr, port):
         status_list.pop()
         status_list.append(status)
         if status == "lobby":
-            #print(f"status: '{status}'")
+            # print(f"status: '{status}'")
             pass
         elif status == "start":
             try:
