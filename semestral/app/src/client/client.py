@@ -8,16 +8,26 @@ from pyglet.window import key
 
 
 class Sender:
+    """
+    helper class that stores stuff that gets send to server
+    """
+
     def __init__(self):
         self.x = 0
         self.y = 0
         self.m_x = 0
         self.m_y = 0
         self.m_press = False
+        self.dash = False
 
 
 class Receiver:
+    """
+    helper class that stores stuff that we receive from the server
+    """
+
     def __init__(self):
+        self.main_player = None
         self.width = None
         self.height = None
         self.players = {}
@@ -29,6 +39,7 @@ def run_client_game(rec, send, status_list):
     win = pyglet.window.Window(rec.width, rec.height)
     moving_batch = pyglet.graphics.Batch()
     static_batch = pyglet.graphics.Batch()
+    fps_display = pyglet.window.FPSDisplay(win)
 
     background = pyglet.shapes.Rectangle(
         0, 0, rec.width, rec.height, color=config['color']['background'], batch=static_batch)
@@ -40,12 +51,15 @@ def run_client_game(rec, send, status_list):
     players = {}
     guns = {}
     for i, p in rec.players.items():
-        if p.team == "T":
+        if p.id == rec.main_player.id:
             players[i] = pyglet.shapes.Circle(
-                p.pos.x, p.pos.y, config['player']['radius'], batch=moving_batch, color=config['color']['enemy'])
-        else:
+                p.pos.x, p.pos.y, config['player']['radius'], batch=moving_batch, color=config['color']['self'])
+        elif p.team == rec.main_player.team:
             players[i] = pyglet.shapes.Circle(
                 p.pos.x, p.pos.y, config['player']['radius'], batch=moving_batch, color=config['color']['ally'])
+        else:
+            players[i] = pyglet.shapes.Circle(
+                p.pos.x, p.pos.y, config['player']['radius'], batch=moving_batch, color=config['color']['enemy'])
         guns[i] = pyglet.shapes.Line(p.gun[0].x, p.gun[0].y, p.gun[1].x, p.gun[1].y,
                                      width=config['gun']['width'], color=config['color']['gun'], batch=moving_batch)
 
@@ -57,6 +71,7 @@ def run_client_game(rec, send, status_list):
     def update_keys(dt):
         send.x = keys[key.D] - keys[key.A]
         send.y = keys[key.W] - keys[key.S]
+        send.dash = keys[key.SPACE]
 
     def update_moving(dt):
         for i in players.keys():
@@ -101,6 +116,7 @@ def run_client_game(rec, send, status_list):
         win.clear()
         static_batch.draw()
         moving_batch.draw()
+        fps_display.draw()
 
     @win.event
     def on_mouse_motion(x, y, dx, dy):
@@ -127,7 +143,7 @@ def run_client(addr, port):
 
     status = "end"
     try:
-        status = pickle.loads(s.recv(4096))
+        status = pickle.loads(s.recv(config['rcv_size']))
         print("Received game status")
     except:
         print("Couldn't receive game status")
@@ -155,7 +171,7 @@ def run_client(addr, port):
         elif status == "start":
             try:
                 print(f"status: '{status}'")
-                game_map = pickle.loads(s.recv(4096))
+                game_map = pickle.loads(s.recv(config['rcv_size']))
                 receiver.walls = game_map[0]
                 receiver.width = game_map[1]
                 receiver.height = game_map[2]
@@ -174,9 +190,8 @@ def run_client(addr, port):
                         run_client_game, (receiver, sender, status_list))
                     start = False
 
-                players, bullets = pickle.loads(s.recv(4096))
-                receiver.players = players
-                receiver.bullets = bullets
+                receiver.players, receiver.bullets, receiver.main_player = pickle.loads(
+                    s.recv(config['rcv_size']))
 
                 s.send(pickle.dumps(sender))
                 sender.m_press = False
@@ -189,7 +204,7 @@ def run_client(addr, port):
             break
 
         try:
-            status = pickle.loads(s.recv(4096))
+            status = pickle.loads(s.recv(config['rcv_size']))
         except:
             print("Couldn't receive game status")
             status = "end"

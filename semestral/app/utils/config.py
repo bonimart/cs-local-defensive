@@ -2,8 +2,11 @@ config = {
     'player': {
         'radius': 20,
         'speed': 150,
-        'max_hp': 100,
-        'bullet_timer': 0.25
+        'dash_speed': 300,
+        'max_hp': 5,
+        'bullet_timer': 0.25,
+        'dash_cd': 3,
+        'dash_time': 0.5
     },
     'bot': {
         'search_radius': 300,
@@ -17,7 +20,7 @@ config = {
     'bullet': {
         'radius': 10,
         'speed': 400,
-        'damage': 20
+        'damage': 1
     },
     'window': {
         'width': 1400,
@@ -42,5 +45,6 @@ config = {
     'update_rate': 250.,
     'debug': False,
     'num_of_players': 10,
-    'fading_factor': 5
+    'fading_factor': 5,
+    'rcv_size': 4096
 }

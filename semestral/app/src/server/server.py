@@ -31,6 +31,7 @@ class Client:
 
 class PlayerData:
     def __init__(self, p):
+        self.id = p.id
         self.pos = p.pos
         self.gun = (Vector(p.gun.x, p.gun.y), Vector(p.gun.x2, p.gun.y2))
         self.team = p.team
@@ -107,7 +108,7 @@ def client_thread(s, player_id):
             if status == "lobby":
                 s.send(pickle.dumps(status))
                 # 11 bytes
-                reply = pickle.loads(s.recv(4096))
+                reply = pickle.loads(s.recv(config['rcv_size']))
                 #print(f"received {reply} from {player_id}")
                 if reply != f"connected":
                     print(f"Received wrong reply from {player_id}")
@@ -116,7 +117,7 @@ def client_thread(s, player_id):
                 ready = False
                 s.send(pickle.dumps(status))
                 # 11 bytes
-                reply = pickle.loads(s.recv(4096))
+                reply = pickle.loads(s.recv(config['rcv_size']))
                 #print(f"received {reply} from {player_id}")
                 if reply != f"connected":
                     print(f"Received wrong reply from {player_id}")
@@ -124,7 +125,7 @@ def client_thread(s, player_id):
 
                 s.send(pickle.dumps(
                     (mp, config['window']['width'], config['window']['height'])))
-                reply = pickle.loads(s.recv(4096))
+                reply = pickle.loads(s.recv(config['rcv_size']))
                 if reply != f"received":
                     print(f"Received wrong reply from {player_id}")
                     break
@@ -151,9 +152,10 @@ def client_thread(s, player_id):
                 if game.isOver():
                     status = "lobby"
                     continue
+
                 s.send(pickle.dumps(status))
                 # 11 bytes
-                reply = pickle.loads(s.recv(4096))
+                reply = pickle.loads(s.recv(config['rcv_size']))
                 #print(f"received {reply} from {player_id}")
                 if reply != f"connected":
                     print(f"Received wrong reply from {player_id}")
@@ -161,9 +163,9 @@ def client_thread(s, player_id):
 
                 plrs = {p.id: PlayerData(p) for p in game.players}
                 blts = {b.id: (b.pos.x, b.pos.y) for b in game.bullets}
-                s.send(pickle.dumps((plrs, blts)))
+                s.send(pickle.dumps((plrs, blts, threaded_player)))
                 # 11 bytes
-                reply = pickle.loads(s.recv(4096))
+                reply = pickle.loads(s.recv(config['rcv_size']))
 
                 if threaded_player in game.players:
                     threaded_player.mouse_pos.x = reply.m_x
@@ -171,6 +173,7 @@ def client_thread(s, player_id):
                     threaded_player.mouse_press = reply.m_press
                     threaded_player.vel.x = reply.x
                     threaded_player.vel.y = reply.y
+                    threaded_player.dash = reply.dash
 
         except Exception as e:
             print(print(e))
