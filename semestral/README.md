@@ -2,11 +2,11 @@
 ## Použití
 Pro zapnutí hry je třeba se připojit k serveru. Tento server můžete založit lokálně příkazem (za ip je potřeba doplnit vaši lokální adresu):
 ```
-python3 app/main.py server [ip]
+python3 app server [ip]
 ```
 Pro připojení k serveru musíte znát jeho ip adresu. Připojíte se obdobně příkazem:
 ```
-python3 app/main.py client [ip]
+python3 app client [ip]
 ```
 kde ip je adresa, na které běží server, ke kterému se chcete připojit. Po připojení musíte počkat, než hostitel zapne hru.
 
