@@ -6,9 +6,12 @@ import sys
 help_string = '''Usage: python3 main.py server|client [IP ADRESS]
 ------------------------------------------------
 In order to play this 2D shooter, you need to connect to a local server.
-You can either start a new server and then connect to it, or connect to an existing server straight away.
-If you want to create a new server, use 'server' option, if you want to connect to a server, use 'client' option.
-IP ADRESS is optional, default ip and port are specified in /utils/config.py.'''
+You can either start a new server and then connect to it,
+or connect to an existing server straight away.
+If you want to create a new server, use 'server' option.
+If you want to connect to a server, use 'client' option.
+IP ADRESS is optional, default ip and port are specified in /utils/config.py.
+'''
 
 if __name__ == "__main__":
     n_arguments = len(sys.argv)

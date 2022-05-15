@@ -62,13 +62,15 @@ def client_thread(s, player_id, server):
                     print(f"Received wrong reply from {player_id}")
                     break
                 s.send(pickle.dumps(
-                    (mp, config['window']['width'], config['window']['height'])))
+                    (mp, config['window']['width'],
+                     config['window']['height'])))
                 reply = pickle.loads(s.recv(config['rcv_size']))
                 if reply != f"received":
                     print(f"Received wrong reply from {player_id}")
                     break
 
-                # ? the game will start only when this player is the last one to be ready
+                # ? the game will start only when
+                # ? this player is the last one to be ready
                 if not server.clients[player_id].ready:
                     server.clients[player_id].ready = True
                     if server.readyCheck():
@@ -127,7 +129,8 @@ def client_thread(s, player_id, server):
 
         except Exception as e:
             print(
-                f"Exception occured during communication with client {player_id}")
+                "Exception occured during communication",
+                f"with client {player_id}")
             print(print(e))
             break
 
@@ -146,7 +149,9 @@ def input_thread(s, server):
             print(help_string)
         elif inp == "start":
             server.status = config['status']['start']
-        elif inp == 'restart' and server.status == config['status']['game_over']:
+        elif inp == 'restart' \
+                and server.status == config['status']['game_over']:
+
             server.status = config['status']['lobby']
 
     server.status = config['status']['end']
@@ -168,7 +173,8 @@ def run_server(host, port):
     try:
         s.bind((host, port))
         print(
-            f"Lobby on port {s.getsockname()[1]} of address {s.getsockname()[0]} successfully created")
+            "Lobby on port", s.getsockname()[1],
+            f"of address {s.getsockname()[0]} successfully created")
     except socket.error as e:
         print("Socket creation failed with error:", str(e))
         return
@@ -197,7 +203,9 @@ def run_server(host, port):
                 client_thread, (sock, server.client_id, server))
             server.addClient(Client())
             print("New connection on address ", addr[0],
-                  f", id - {server.client_id}, {len(server.clients.keys())}/{config['num_of_players']} players connected")
+                  f", id - {server.client_id},",
+                  f"{len(server.clients.keys())}/{config['num_of_players']}",
+                  "players connected")
 
     server.status = config['status']['end']
     print("Server is shutting down")

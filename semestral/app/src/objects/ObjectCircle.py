@@ -14,7 +14,8 @@ class ObjectCircle(Object):
         self.r = r
 
     def resolve_collision(self, other: Object):
-        """Resolves collision with another Object by moving self so that collision is not hapenning
+        """Resolves collision with another Object by moving self
+        so that collision is not hapenning
 
         Args:
             other (Object): colliding object

@@ -55,8 +55,11 @@ def run_client_game(rec, send, status_list):
             players[i].color = config['color']['ally']
         else:
             players[i].color = config['color']['enemy']
-        guns[i] = pyglet.shapes.Line(p.gun[0].x, p.gun[0].y, p.gun[1].x, p.gun[1].y,
-                                     width=config['gun']['width'], color=config['color']['gun'], batch=moving_batch)
+        guns[i] = pyglet.shapes.Line(p.gun[0].x, p.gun[0].y,
+                                     p.gun[1].x, p.gun[1].y,
+                                     width=config['gun']['width'],
+                                     color=config['color']['gun'],
+                                     batch=moving_batch)
     health_points = []
     # ? visualize health points as stars
     margin_factor = 2
@@ -111,11 +114,12 @@ def run_client_game(rec, send, status_list):
 
         for i in rec.bullets.keys():
             if i not in bullets:
-                bullets[i] = pyglet.shapes.Circle(rec.bullets[i][0],
-                                                  rec.bullets[i][1],
-                                                  config['bullet']['radius'],
-                                                  color=config['color']['bullet'],
-                                                  batch=moving_batch)
+                bullets[i] = pyglet.shapes.Circle(
+                    rec.bullets[i][0],
+                    rec.bullets[i][1],
+                    config['bullet']['radius'],
+                    color=config['color']['bullet'],
+                    batch=moving_batch)
             else:
                 bullets[i].x = rec.bullets[i][0]
                 bullets[i].y = rec.bullets[i][1]
@@ -183,10 +187,11 @@ def run_client(addr, port):
     try:
         s.connect((addr, port))
         print("Connected to", addr)
-    except:
+    except Exception as e:
         print("Couldn't connect to the server")
 
-    # default status, means we were not allowed to join the game or that the game ended later on
+    # default status, means we were not allowed to join the game
+    # or that the game ended later on
     status = config['status']['end']
 
     try:
@@ -196,7 +201,8 @@ def run_client(addr, port):
 
     sender = Sender()
     receiver = Receiver()
-    # start signalizes to start game thread, this way there's only one instance of it
+    # start signalizes to start game thread,
+    # this way there's only one instance of it
     start = False
     # variable for game thread
     status_list = [status]
@@ -239,7 +245,9 @@ def run_client(addr, port):
                         run_client_game, (receiver, sender, status_list))
                     start = False
 
-                receiver.players, receiver.bullets, receiver.main_player = pickle.loads(
+                receiver.players,
+                receiver.bullets,
+                receiver.main_player = pickle.loads(
                     s.recv(config['rcv_size']))
 
                 s.send(pickle.dumps(sender))

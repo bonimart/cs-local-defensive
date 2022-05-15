@@ -28,7 +28,8 @@ class Player(ObjectCircle):
         self.dash = False
 
     def update(self, dt: float):
-        """Updates player position, velocity and gun position based on user input
+        """Updates player position,
+        velocity and gun position based on user input
 
         Args:
             dt (float): difference in time
@@ -47,7 +48,7 @@ class Player(ObjectCircle):
         self.gun.y2 = self.pos.y + gun_vec.y * \
             (self.r + config['gun']['length'])
 
-        if self.dash == True and self.canDash():
+        if self.dash and self.canDash():
             self.dash_timer = config['player']['dash_time']
             self.dash_cooldown = config['player']['dash_cd']
 

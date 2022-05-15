@@ -28,14 +28,15 @@ def circRectClosestPoint(circ, rect):
         Vector: point on the perimeter of the rectangle
     """
     # sides of rectangle (left, right, bottom, up)
-    l = rect.pos.x
-    r = rect.pos.x + rect.size.x
-    b = rect.pos.y
-    u = rect.pos.y + rect.size.y
+    left = rect.pos.x
+    right = rect.pos.x + rect.size.x
+    bottom = rect.pos.y
+    up = rect.pos.y + rect.size.y
 
     # nearest point on the perimeter of the rectangle
     # if c.x > r, r is returned, if c.x < l, l is returned, otherwise c.x
-    return Vector(max(l, min(circ.pos.x, r)), max(b, min(circ.pos.y, u)))
+    return Vector(max(left, min(circ.pos.x, right)),
+                  max(bottom, min(circ.pos.y, up)))
 
 
 # https://gamedev.stackexchange.com/questions/26004/how-to-detect-2d-line-on-line-collision
@@ -81,23 +82,24 @@ def lineRect(line, rect):
     """
 
     # check if line collides with every side of the rectangle
-    l = (Vector(rect.pos.x, rect.pos.y),
-         Vector(rect.pos.x, rect.pos.y+rect.size.y))
-    r = (Vector(rect.pos.x+rect.size.x, rect.pos.y),
-         Vector(rect.pos.x+rect.size.x, rect.pos.y+rect.size.y))
-    b = (Vector(rect.pos.x, rect.pos.y),
-         Vector(rect.pos.x+rect.size.x, rect.pos.y))
-    u = (Vector(rect.pos.x, rect.pos.y+rect.size.y),
-         Vector(rect.pos.x+rect.size.x, rect.pos.y+rect.size.y))
+    left = (Vector(rect.pos.x, rect.pos.y),
+            Vector(rect.pos.x, rect.pos.y+rect.size.y))
+    right = (Vector(rect.pos.x+rect.size.x, rect.pos.y),
+             Vector(rect.pos.x+rect.size.x, rect.pos.y+rect.size.y))
+    bottom = (Vector(rect.pos.x, rect.pos.y),
+              Vector(rect.pos.x+rect.size.x, rect.pos.y))
+    up = (Vector(rect.pos.x, rect.pos.y+rect.size.y),
+          Vector(rect.pos.x+rect.size.x, rect.pos.y+rect.size.y))
 
-    return lineLine(line, l) or lineLine(line, r) or lineLine(line, b) or lineLine(line, u)
+    return lineLine(line, left) or lineLine(line, right) \
+        or lineLine(line, bottom) or lineLine(line, up)
 
 
 def circleCircle(c1, c2):
     """Function that determines if two circles collide
 
     Args:
-        c1 (ObjectCircle) 
+        c1 (ObjectCircle)
         c2 (ObjectCircle)
 
     Returns:

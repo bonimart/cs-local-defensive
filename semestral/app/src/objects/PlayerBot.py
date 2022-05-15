@@ -38,7 +38,8 @@ class PlayerBot(Player):
         """
         if not self.search_radius.is_colliding(target):
             return False
-        # ! checking only the center might not be the best idea, but it's efficient
+        # ! checking only the center might not be the best idea, but it's
+        # ! efficient
         botTargetLine = (self.pos, target.pos)
         for o in obstacles:
             if clsn.lineRect(botTargetLine, o):
@@ -51,7 +52,8 @@ class PlayerBot(Player):
         """
         # ? bot tries to stay in distance that is half of its search radius rn
         self.vel = (self.vel + (self.target.pos - self.pos) *
-                    (((self.target.pos - self.pos).norm() - self.search_radius.r/2)
+                    (((self.target.pos - self.pos).norm() -
+                      self.search_radius.r/2)
                      / config['bot']['attraction_coefficient'])).normalize()
 
     def resolve_collision(self, other: Object):

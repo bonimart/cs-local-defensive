@@ -7,7 +7,8 @@ import utils.collisions as clsn
 
 class Bullet(ObjectCircle):
     """
-    Class that stores information about bullets Players can fire, derived from ObjectCircle
+    Class that stores information about bullets Players can fire,
+    derived from ObjectCircle
     """
 
     def __init__(self, x, y, velx, vely, team):

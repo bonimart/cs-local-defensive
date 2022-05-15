@@ -21,14 +21,19 @@ class Game:
             self.walls.add(ObjectRect(*w))
         self.players = self.generate_positions(clients)
 
-    def generate_position(self, players: set, range_x: tuple, range_y: tuple) -> ObjectCircle:
+    def generate_position(self, players: set,
+                          range_x: tuple,
+                          range_y: tuple) -> ObjectCircle:
         """Randomly generates position for a player.
         Players are not taken from self because they don't exist at the time
 
         Args:
-            players (set(players)): players that have their positions already generated
-            range_x (tuple(int)): range on the x-axis where the position can be generated
-            range_y (tuple(int)): range on the y-axis where the position can be generated
+            players (set(players)): players that have their positions
+                                    already generated
+            range_x (tuple(int)): range on the x-axis
+                                  where the position can be generated
+            range_y (tuple(int)): range on the y-axis
+                                  where the position can be generated
 
         Returns:
             ObjectCircle: circle which represents position of the new player
@@ -48,7 +53,8 @@ class Game:
         return c
 
     def generate_positions(self, clients: dict) -> set:
-        """Generates positions for all clients and bots, so that the number of total players matches configuration.
+        """Generates positions for all clients and bots,
+        so that the number of total players matches configuration.
 
         Args:
             clients (dict(int : Client)): dictionary of connected clients
@@ -58,9 +64,9 @@ class Game:
         """
         players = set()
         m = max(clients.keys()) + 1
-        l = len(clients.keys())
+        length = len(clients.keys())
         ids = [k for k in clients.keys()]
-        for j in [m+i for i in range(0, config['num_of_players']-l)]:
+        for j in [m+i for i in range(0, config['num_of_players']-length)]:
             ids.append(j)
         random.shuffle(ids)
         for i in range(len(ids)):
@@ -81,7 +87,8 @@ class Game:
         return players
 
     def isOver(self) -> bool:
-        """Check if game has ended, game ends if either team has no players alive
+        """Check if game has ended,
+        game ends if either team has no players alive
 
         Returns:
             bool: true if game is over, otherwise false
@@ -100,7 +107,9 @@ class Game:
         """Checks which team has won the game
 
         Returns:
-            str: T if terorrists won, CT if counter-terorrists won, None otherwise
+            str: T if terorrists won,
+                CT if counter-terorrists won,
+                None otherwise
         """
         players = self.players.copy()
         t_dead = True
@@ -128,7 +137,7 @@ class Game:
             self.update_bot(obj, dt)
         elif isinstance(obj, Player):
             b = obj.update_shoot()
-            if b != None and not self.wall_shot(b):
+            if b is not None and not self.wall_shot(b):
                 b.id = self.bullet_id
                 self.bullets.add(b)
                 self.bullet_id += 1
@@ -179,7 +188,9 @@ class Game:
 
         # bot is hunting the target
         elif bot.state == "KILL":
-            if bot.target in self.players and bot.can_see(bot.target, seen_walls):
+            if bot.target in self.players \
+                    and bot.can_see(bot.target, seen_walls):
+
                 if bot.bullet_timer <= 0:
                     bot.reset_timer()
                     b = bot.shoot(bot.target.pos.x, bot.target.pos.y)
@@ -220,7 +231,7 @@ class Game:
                     hit.add(b)
                     p.get_hit(b)
             # dead players
-            if p.dead == True:
+            if p.dead:
                 dead.add(p)
         # bury the dead
         for p in dead:
