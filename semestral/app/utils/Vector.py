@@ -11,8 +11,7 @@ class Vector:
         self.y = y
 
     def __iadd__(self, other):
-        self.x += other.x
-        self.y += other.y
+        self = self + other
         return self
 
     def __add__(self, other):
@@ -26,6 +25,9 @@ class Vector:
 
     def __truediv__(self, other):
         return Vector(self.x / other, self.y / other)
+
+    def __eq__(self, other):
+        return self.x == other.x and self.y == other.y
 
     def distance(self, other) -> float:
         """Method for calculating distance between two vectors

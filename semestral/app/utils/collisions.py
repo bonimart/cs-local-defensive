@@ -60,6 +60,7 @@ def lineLine(l1, l2):
     n1 = ((a.y - c.y) * (d.x - c.x)) - ((a.x - c.x) * (d.y - c.y))
     n2 = ((a.y - c.y) * (b.x - a.x)) - ((a.x - c.x) * (b.y - a.y))
 
+    # ? this algorithm doesn't work correctly for parallel lines
     if den == 0:
         return n1 == 0 and n2 == 0
     r = n1 / den
