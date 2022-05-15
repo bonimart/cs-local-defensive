@@ -1,3 +1,4 @@
+from src.objects import Object
 from src.objects.Player import Player
 from src.objects.ObjectCircle import ObjectCircle
 from utils.Vector import Vector
@@ -7,47 +8,74 @@ import random
 
 
 class PlayerBot(Player):
-    # STATES: SEARCH, KILL
+    # STATES: search, KILL
 
-    def __init__(self, x, y, team, batch=None, color=(255, 255, 255)):
-        super().__init__(x, y, team, batch=batch,  vel=Vector(
+    def __init__(self, x, y, team):
+        super().__init__(x, y, team, vel=Vector(
             random.random(), random.random()).normalize())
-        self.shape.color = color
         self.state = "search"
         self.target = None
-        self.timer = 0
         self.search_radius = ObjectCircle(x, y,
-                                          config['bot']['search_radius'], batch=batch)
-        self.l = None
+                                          config['bot']['search_radius'])
+
+    def update_timer(self, dt):
+        self.bullet_timer -= dt
+
+    def reset_timer(self):
+        self.bullet_timer = config['bot']['kill_cd']*(1 + random.random())
 
     def can_see(self, target, obstacles):
-        line = (self.pos, target.pos)
+        """Method that checks if bot can see another Player
+
+        Args:
+            target (Player): target which the bot might see
+            obstacles (Object): obstacles between bot and target
+
+        Returns:
+            bool: true if bot can see the target, false otherwise
+        """
+        if not self.search_radius.is_colliding(target):
+            return False
+        # ! checking only the center might not be the best idea, but it's efficient
+        botTargetLine = (self.pos, target.pos)
         for o in obstacles:
-            if clsn.lineRect(line, o):
+            if clsn.lineRect(botTargetLine, o):
                 return False
         return True
 
-    def update(self, dt):
-        self.updatePos(dt, config['player']['speed'])
-        self.search_radius.pos = self.pos
-        self.search_radius.shape.x = self.pos.x
-        self.search_radius.shape.y = self.pos.y
-        if self.state == "search":
-            p = self.vel
-        elif self.state == "kill":
-            p = (self.target.pos - self.pos).normalize()
+    def follow_target(self):
+        """Method that updates bots velocity based on relative position
+        to its target
+        """
+        # ? bot tries to stay in distance that is half of its search radius rn
+        self.vel = (self.vel + (self.target.pos - self.pos) *
+                    (((self.target.pos - self.pos).norm() - self.search_radius.r/2)
+                     / config['bot']['attraction_coefficient'])).normalize()
 
-        self.gun.x = self.pos.x + p.x * self.r
-        self.gun.y = self.pos.y + p.y * self.r
-        self.gun.x2 = self.pos.x + p.x * \
-            (self.r + config['gun']['length'])
-        self.gun.y2 = self.pos.y + p.y * \
-            (self.r + config['gun']['length'])
+    def resolve_collision(self, other: Object):
+        """Method that updates bots velocity when colliding
 
-    def resolve_collision(self, other):
+        Args:
+            other (Object): object that collides with the bot
+        """
+        # ? bot moves randomly when collision occurs
         self.vel = Vector(random.choice([-1, 1])*random.random(),
                           random.choice([-1, 1])*random.random()).normalize()
         super().resolve_collision(other)
 
-    def update_timer(self, dt):
-        max(0, self.timer - dt)
+    def update(self, dt):
+        self.updatePos(dt, config['player']['speed'])
+        self.search_radius.pos = self.pos
+        # ? bot points its gun in the direction of its movement while searching
+        if self.state == "search":
+            aim = self.vel
+        # ? bot points its gun in the direction of its target when hunting
+        elif self.state == "KILL":
+            aim = (self.target.pos - self.pos).normalize()
+
+        self.gun.x = self.pos.x + aim.x * self.r
+        self.gun.y = self.pos.y + aim.y * self.r
+        self.gun.x2 = self.pos.x + aim.x * \
+            (self.r + config['gun']['length'])
+        self.gun.y2 = self.pos.y + aim.y * \
+            (self.r + config['gun']['length'])
