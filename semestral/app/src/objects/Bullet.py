@@ -6,15 +6,23 @@ import utils.collisions as clsn
 
 
 class Bullet(ObjectCircle):
-    def __init__(self, x, y, velx, vely, team, batch=None):
+    def __init__(self, x, y, velx, vely, team):
         super().__init__(x, y,
                          config['bullet']['radius'],
                          vel=Vector(velx, vely))
+        self.id = None
         self.team = team
         self.damage = config['bullet']['damage']
-        self.id = None
 
     def resolve_collision(self, other):
+        """resolve collision with a wall
+
+        Args:
+            other (Object): Object colliding with bullet
+
+        Raises:
+            Exception: when different Object than ObjectRect was given
+        """
         if isinstance(other, ObjectRect):
             p = clsn.circRectClosestPoint(self, other)
             # vector between our centre and closest point on the rectangle
@@ -29,7 +37,7 @@ class Bullet(ObjectCircle):
         else:
             raise Exception("Bullets collide with type ObjectRect only")
 
-    def update(self, dt):
+    def update(self, dt: float):
         """Update position
 
         Args:
