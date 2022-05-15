@@ -147,7 +147,7 @@ def input_thread(s, server):
         inp = input()
         if inp == "help":
             print(help_string)
-        elif inp == "start":
+        elif inp == "start" and len(server.clients.keys()) > 0:
             server.status = config['status']['start']
         elif inp == 'restart' \
                 and server.status == config['status']['game_over']:

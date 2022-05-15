@@ -240,15 +240,15 @@ def run_client(addr, port):
         # game_loop
         elif status == config['status']['game']:
             try:
-                if start:
-                    _thread.start_new_thread(
-                        run_client_game, (receiver, sender, status_list))
-                    start = False
-
                 data = pickle.loads(s.recv(config['rcv_size']))
                 receiver.players = data[0]
                 receiver.bullets = data[1]
                 receiver.main_player = data[2]
+
+                if start:
+                    _thread.start_new_thread(
+                        run_client_game, (receiver, sender, status_list))
+                    start = False
 
                 s.send(pickle.dumps(sender))
                 sender.m_press = False
