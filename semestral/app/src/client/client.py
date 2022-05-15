@@ -1,70 +1,79 @@
+from utils.config import config
+from pyglet.window import key
+from src.client.Receiver import Receiver
+from src.client.Sender import Sender
 import socket
 import pickle
 import pyglet
-import time
 import _thread
-from utils.config import config
-from pyglet.window import key
-
-
-class Sender:
-    """
-    helper class that stores stuff that gets send to server
-    """
-
-    def __init__(self):
-        self.x = 0
-        self.y = 0
-        self.m_x = 0
-        self.m_y = 0
-        self.m_press = False
-        self.dash = False
-
-
-class Receiver:
-    """
-    helper class that stores stuff that we receive from the server
-    """
-
-    def __init__(self):
-        self.main_player = None
-        self.width = None
-        self.height = None
-        self.players = {}
-        self.bullets = set()
-        self.walls = None
 
 
 def run_client_game(rec, send, status_list):
+    """Runs an instance of the game based on data in rec
+
+    Args:
+        rec (Receiver): container for server input
+        send (Sender): container for player input
+        status_list (list(string)): list for storing current status
+    """
+
     win = pyglet.window.Window(rec.width, rec.height)
     moving_batch = pyglet.graphics.Batch()
     static_batch = pyglet.graphics.Batch()
     fps_display = pyglet.window.FPSDisplay(win)
-
-    background = pyglet.shapes.Rectangle(
-        0, 0, rec.width, rec.height, color=config['color']['background'], batch=static_batch)
+    # static batch objects
+    background = pyglet.shapes.Rectangle(0, 0,
+                                         rec.width, rec.height,
+                                         color=config['color']['background'],
+                                         batch=static_batch)
     walls = set()
     for wall in rec.walls:
-        walls.add(pyglet.shapes.Rectangle(
-            *wall, color=config['color']['wall'], batch=static_batch))
+        walls.add(pyglet.shapes.Rectangle(*wall,
+                                          color=config['color']['wall'],
+                                          batch=static_batch))
 
+    # endgame text label
+    text = pyglet.text.Label(font_name=config['font'],
+                             font_size=config['font_size'],
+                             bold=True,
+                             anchor_x='center',
+                             x=config['window']['width']//2,
+                             y=config['window']['height']//3,
+                             batch=static_batch)
+    text.opacity = 180
+    # objects that get updated during the game
     players = {}
     guns = {}
+    bullets = {}
     for i, p in rec.players.items():
+        players[i] = pyglet.shapes.Circle(p.pos.x, p.pos.y,
+                                          config['player']['radius'],
+                                          batch=moving_batch)
         if p.id == rec.main_player.id:
-            players[i] = pyglet.shapes.Circle(
-                p.pos.x, p.pos.y, config['player']['radius'], batch=moving_batch, color=config['color']['self'])
+            players[i].color = config['color']['self']
         elif p.team == rec.main_player.team:
-            players[i] = pyglet.shapes.Circle(
-                p.pos.x, p.pos.y, config['player']['radius'], batch=moving_batch, color=config['color']['ally'])
+            players[i].color = config['color']['ally']
         else:
-            players[i] = pyglet.shapes.Circle(
-                p.pos.x, p.pos.y, config['player']['radius'], batch=moving_batch, color=config['color']['enemy'])
+            players[i].color = config['color']['enemy']
         guns[i] = pyglet.shapes.Line(p.gun[0].x, p.gun[0].y, p.gun[1].x, p.gun[1].y,
                                      width=config['gun']['width'], color=config['color']['gun'], batch=moving_batch)
-
-    bullets = {}
-
+    health_points = []
+    # ? visualize health points as stars
+    margin_factor = 2
+    outer_to_inner_radius = 2
+    spikes = 5
+    for n in range(1, rec.main_player.hp+1):
+        hp = pyglet.shapes.Star(
+            config['window']['width'] - margin_factor *
+            n*config['hit_point_radius'],
+            margin_factor*config['hit_point_radius'],
+            config['hit_point_radius'],
+            config['hit_point_radius']/outer_to_inner_radius,
+            spikes,
+            batch=moving_batch)
+        hp.opacity = 160
+        health_points.append(hp)
+    # movement input
     keys = key.KeyStateHandler()
     win.push_handlers(keys)
 
@@ -74,6 +83,11 @@ def run_client_game(rec, send, status_list):
         send.dash = keys[key.SPACE]
 
     def update_moving(dt):
+        """Updates moving objects on the client side
+
+        Args:
+            dt (float): difference of time between updates
+        """
         for i in players.keys():
             try:
                 if rec.players[i].id == rec.main_player.id:
@@ -97,8 +111,11 @@ def run_client_game(rec, send, status_list):
 
         for i in rec.bullets.keys():
             if i not in bullets:
-                bullets[i] = pyglet.shapes.Circle(
-                    rec.bullets[i][0], rec.bullets[i][1], config['bullet']['radius'], batch=moving_batch, color=config['color']['bullet'])
+                bullets[i] = pyglet.shapes.Circle(rec.bullets[i][0],
+                                                  rec.bullets[i][1],
+                                                  config['bullet']['radius'],
+                                                  color=config['color']['bullet'],
+                                                  batch=moving_batch)
             else:
                 bullets[i].x = rec.bullets[i][0]
                 bullets[i].y = rec.bullets[i][1]
@@ -109,19 +126,32 @@ def run_client_game(rec, send, status_list):
         for i in exploded:
             del bullets[i]
 
-    pyglet.clock.schedule_interval(update_keys, 1/config['update_rate'])
-    pyglet.clock.schedule_interval(update_moving, 1/config['update_rate'])
+        while rec.main_player.hp < len(health_points):
+            health_points.pop().visible = False
+
+    pyglet.clock.schedule_interval(update_keys, 1/config['client_update_rate'])
+    pyglet.clock.schedule_interval(
+        update_moving, 1/config['client_update_rate'])
 
     @ win.event
     def on_draw():
-        if "game" not in status_list:
+        if status_list[0] == config['status']['game']:
+            win.clear()
+            static_batch.draw()
+            moving_batch.draw()
+            fps_display.draw()
+        elif status_list[0] == config['status']['game_over']:
+            if rec.won == rec.main_player.team:
+                text.text = 'Your team has won the game'
+            else:
+                text.text = 'Your team has lost the game'
+            win.clear()
+            static_batch.draw()
+            text.draw()
+        else:
             pyglet.clock.unschedule(update_keys)
             pyglet.app.exit()
             return
-        win.clear()
-        static_batch.draw()
-        moving_batch.draw()
-        fps_display.draw()
 
     @ win.event
     def on_mouse_motion(x, y, dx, dy):
@@ -132,65 +162,79 @@ def run_client_game(rec, send, status_list):
     def on_mouse_press(x, y, button, modifiers):
         send.m_press = True
 
+    @ win.event
+    def on_close():
+        win.has_exit = True
+        win.close()
+        status_list[0] = config['status']['end']
+
     pyglet.app.run()
     win.close()
 
 
 def run_client(addr, port):
+    """Runs a client that tries to connect to server on (addr, port)
+
+    Args:
+        addr (string): ip address of the server
+        port (int): port where the server listens
+    """
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         s.connect((addr, port))
-        print("Connected")
+        print("Connected to", addr)
     except:
-        print("Something went wrong")
+        print("Couldn't connect to the server")
 
     # default status, means we were not allowed to join the game or that the game ended later on
+    status = config['status']['end']
 
-    status = "end"
     try:
         status = pickle.loads(s.recv(config['rcv_size']))
-        print("Received game status")
-    except:
-        print("Couldn't receive game status")
+    except Exception as e:
+        print("Couldn't receive game status from the server due to", e)
 
     sender = Sender()
     receiver = Receiver()
+    # start signalizes to start game thread, this way there's only one instance of it
     start = False
-    running = False
+    # variable for game thread
     status_list = [status]
-    while status != "end":
-        # time.sleep(1)
+    while status != config['status']['end']:
+
+        if status_list[0] == config['status']['end']:
+            print("You have left the game")
+            s.send(pickle.dumps(config['reply']['disconnected']))
+            break
 
         try:
-            s.send(pickle.dumps("connected"))
+            s.send(pickle.dumps(config['reply']['connected']))
         except socket.error as e:
-            print("Couldn't send connection status")
-            print(e)
+            print("Couldn't send connection status", e)
             break
-        # load map here
-        status_list.pop()
-        status_list.append(status)
-        if status == "lobby":
-            # print(f"status: '{status}'")
+
+        status_list[0] = status
+
+        if status == config['status']['lobby']:
             pass
-        elif status == "start":
+        # load map here
+        elif status == config['status']['start']:
             try:
-                print(f"status: '{status}'")
                 game_map = pickle.loads(s.recv(config['rcv_size']))
                 receiver.walls = game_map[0]
                 receiver.width = game_map[1]
                 receiver.height = game_map[2]
 
-                # print(game_map)
-                s.send(pickle.dumps("received"))
+                s.send(pickle.dumps(config['reply']['received']))
                 start = True
-            except:
-                print("Couldn't receive game map")
+                print("The game is going to start")
+            except Exception as e:
+                print("Couldn't receive game map due to")
+                print(e)
         # game_loop
-        elif status == "game":
+        elif status == config['status']['game']:
             try:
                 if start:
-                    print(f"status: '{status}'")
                     _thread.start_new_thread(
                         run_client_game, (receiver, sender, status_list))
                     start = False
@@ -201,17 +245,26 @@ def run_client(addr, port):
                 s.send(pickle.dumps(sender))
                 sender.m_press = False
             except Exception as e:
-                print(e)
-                print("Couldn't receive player positions")
+                print("Couldn't receive player positions due to", e)
 
+        elif status == config['status']['game_over']:
+            try:
+                receiver.won = pickle.loads(s.recv(config['rcv_size']))
+                s.send(pickle.dumps(config['reply']['received']))
+            except Exception as e:
+                print("Couldnt receive end-game status due to", e)
+                break
         else:
             print("Received unknown status")
             break
 
         try:
             status = pickle.loads(s.recv(config['rcv_size']))
-        except:
-            print("Couldn't receive game status")
-            status = "end"
+        except Exception as e:
+            print("Couldn't receive game status due to", e)
+            status = config['status']['end']
+        except KeyboardInterrupt:
+            print("Received keyboard interrupt")
+            status = config['status']['end']
 
     s.close()
