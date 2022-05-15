@@ -2,12 +2,11 @@ from src.objects.Object import Object
 from src.objects.ObjectRect import ObjectRect
 from utils.Vector import Vector
 import utils.collisions as clsn
-import pyglet.shapes as sh
 
 
 class ObjectCircle(Object):
-    def __init__(self, x, y, r, batch=None, color=(255, 255, 255), vel=None):
-        super().__init__(x, y, shape=sh.Circle(x, y, r, color=color, batch=batch), vel=vel)
+    def __init__(self, x, y, r, vel=None):
+        super().__init__(x, y, vel=vel)
         self.r = r
 
     def resolve_collision(self, other):

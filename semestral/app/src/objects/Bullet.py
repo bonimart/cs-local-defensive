@@ -9,10 +9,10 @@ class Bullet(ObjectCircle):
     def __init__(self, x, y, velx, vely, team, batch=None):
         super().__init__(x, y,
                          config['bullet']['radius'],
-                         batch=batch,
-                         color=config['color']['bullet'],
                          vel=Vector(velx, vely))
         self.team = team
+        self.damage = config['bullet']['damage']
+        self.id = None
 
     def resolve_collision(self, other):
         if isinstance(other, ObjectRect):
@@ -27,7 +27,7 @@ class Bullet(ObjectCircle):
             else:
                 self.vel = Vector(-self.vel.x, self.vel.y)
         else:
-            raise Exception("Bullet can collides with type ObjectRect only")
+            raise Exception("Bullets collide with type ObjectRect only")
 
     def update(self, dt):
         """Update position
