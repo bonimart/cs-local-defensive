@@ -8,11 +8,8 @@ from utils.config import config
 class Player(ObjectCircle):
     speed = config['player']['speed']
 
-    def __init__(self, x, y, team, batch=None, vel=Vector(0, 0)):
-        super().__init__(x, y, config['player']['radius'],
-                         color=config['color']['self'],
-                         batch=batch,
-                         vel=vel)
+    def __init__(self, x, y, team, vel=Vector(0, 0)):
+        super().__init__(x, y, config['player']['radius'], vel=vel)
         # state attributes
         self.id = None
         self.team = team
@@ -27,12 +24,6 @@ class Player(ObjectCircle):
         self.mouse_pos = Vector(0, 0)
         self.mouse_press = False
         self.dash = False
-
-    def die(self):
-        # ? Removed everything with shapes
-        #self.shape.visible = False
-        #self.gun.visible = False
-        pass
 
     def update(self, dt):
         """Updates player position, velocity and gun position based on user input
@@ -54,15 +45,19 @@ class Player(ObjectCircle):
         self.gun.y2 = self.pos.y + gun_vec.y * \
             (self.r + config['gun']['length'])
 
+        if self.dash == True and self.canDash():
+            self.dash_timer = config['player']['dash_time']
+            self.dash_cooldown = config['player']['dash_cd']
+
         if self.isDashing():
             self.updatePos(dt, config['player']['dash_speed'])
         else:
             self.updatePos(dt, config['player']['speed'])
 
+    def canDash(self):
+        return self.dash_cooldown == 0
+
     def isDashing(self):
-        if self.dash == True and self.dash_cooldown == 0:
-            self.dash_timer = config['player']['dash_time']
-            self.dash_cooldown = config['player']['dash_cd']
         if self.dash_timer > 0:
             return True
         return False
@@ -95,6 +90,8 @@ class Player(ObjectCircle):
         Args:
             bullet (Bullet): evil bullet that hit our player
         """
+        if not config['friendly_fire'] and bullet.team == self.team:
+            return
         self.hp = max(0, self.hp - bullet.damage)
         if self.hp == 0:
             self.dead = True
