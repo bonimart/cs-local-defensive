@@ -5,11 +5,20 @@ import utils.collisions as clsn
 
 
 class ObjectCircle(Object):
+    """
+    Class for storing circular objects derived from Object
+    """
+
     def __init__(self, x, y, r, vel=None):
         super().__init__(x, y, vel=vel)
         self.r = r
 
-    def resolve_collision(self, other):
+    def resolve_collision(self, other: Object):
+        """Resolves collision with another Object by moving self so that collision is not hapenning
+
+        Args:
+            other (Object): colliding object
+        """
         if isinstance(other, ObjectRect):
             p = clsn.circRectClosestPoint(self, other)
             # vector between our centre and closest point on the rectangle
@@ -21,7 +30,15 @@ class ObjectCircle(Object):
             v = Vector(self.pos.x - other.pos.x, self.pos.y - other.pos.y)
             self.pos += v * (((self.r + other.r) / v.norm()) - 1)
 
-    def is_colliding(self, other):
+    def is_colliding(self, other: Object) -> bool:
+        """Returns if self and other are colliding
+
+        Args:
+            other (Object): Object, which might be colliding with self
+
+        Returns:
+            bool: true if objects collide, false otherwise
+        """
         if isinstance(other, ObjectRect):
             return clsn.circleRectangle(self, other)
         elif isinstance(other, ObjectCircle):

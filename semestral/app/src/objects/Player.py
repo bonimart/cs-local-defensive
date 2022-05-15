@@ -6,7 +6,9 @@ from utils.config import config
 
 
 class Player(ObjectCircle):
-    speed = config['player']['speed']
+    """
+    Player class derived from ObjectCircle
+    """
 
     def __init__(self, x, y, team, vel=Vector(0, 0)):
         super().__init__(x, y, config['player']['radius'], vel=vel)
@@ -25,7 +27,7 @@ class Player(ObjectCircle):
         self.mouse_press = False
         self.dash = False
 
-    def update(self, dt):
+    def update(self, dt: float):
         """Updates player position, velocity and gun position based on user input
 
         Args:
@@ -84,7 +86,7 @@ class Player(ObjectCircle):
                       (self.r + config['gun']['length']),
                       v.x, v.y, self.team)
 
-    def get_hit(self, bullet):
+    def get_hit(self, bullet: Bullet):
         """Update player state on hit
 
         Args:

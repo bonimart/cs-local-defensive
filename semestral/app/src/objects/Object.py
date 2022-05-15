@@ -1,5 +1,4 @@
 from utils.Vector import Vector
-import pyglet.shapes as sh
 
 
 class Object:

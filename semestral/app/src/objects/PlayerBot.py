@@ -8,23 +8,25 @@ import random
 
 
 class PlayerBot(Player):
-    # STATES: search, KILL
+    """
+    Bot class derived from Player
+    """
 
     def __init__(self, x, y, team):
         super().__init__(x, y, team, vel=Vector(
             random.random(), random.random()).normalize())
-        self.state = "search"
-        self.target = None
+        self.state: str = "search"
+        self.target: Player = None
         self.search_radius = ObjectCircle(x, y,
                                           config['bot']['search_radius'])
 
-    def update_timer(self, dt):
+    def update_timer(self, dt: float):
         self.bullet_timer -= dt
 
     def reset_timer(self):
         self.bullet_timer = config['bot']['kill_cd']*(1 + random.random())
 
-    def can_see(self, target, obstacles):
+    def can_see(self, target: Player, obstacles: set(Object)) -> bool:
         """Method that checks if bot can see another Player
 
         Args:
@@ -63,7 +65,12 @@ class PlayerBot(Player):
                           random.choice([-1, 1])*random.random()).normalize()
         super().resolve_collision(other)
 
-    def update(self, dt):
+    def update(self, dt: float):
+        """Update PlayerBot attributes
+
+        Args:
+            dt (float): difference in time
+        """
         self.updatePos(dt, config['player']['speed'])
         self.search_radius.pos = self.pos
         # ? bot points its gun in the direction of its movement while searching
