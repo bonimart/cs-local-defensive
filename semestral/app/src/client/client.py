@@ -245,10 +245,10 @@ def run_client(addr, port):
                         run_client_game, (receiver, sender, status_list))
                     start = False
 
-                receiver.players,
-                receiver.bullets,
-                receiver.main_player = pickle.loads(
-                    s.recv(config['rcv_size']))
+                data = pickle.loads(s.recv(config['rcv_size']))
+                receiver.players = data[0]
+                receiver.bullets = data[1]
+                receiver.main_player = data[2]
 
                 s.send(pickle.dumps(sender))
                 sender.m_press = False
