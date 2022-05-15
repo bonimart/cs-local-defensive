@@ -1,4 +1,4 @@
-from src.server.server import run_server
+from src.server.server_run import run_server
 from src.client.client import run_client
 from utils.config import config
 import sys

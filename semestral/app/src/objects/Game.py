@@ -1,6 +1,5 @@
 from src.objects.Player import Player
 from src.objects.Bullet import Bullet
-from src.server.server import Client
 from src.objects.PlayerBot import PlayerBot
 from src.objects.ObjectRect import ObjectRect
 from src.objects.ObjectCircle import ObjectCircle
@@ -48,7 +47,7 @@ class Game:
                     collides = True
         return c
 
-    def generate_positions(self, clients: dict) -> set(ObjectCircle):
+    def generate_positions(self, clients: dict) -> set:
         """Generates positions for all clients and bots, so that the number of total players matches configuration.
 
         Args:
@@ -248,6 +247,6 @@ class Game:
         """
         Update the game until it is over
         """
-        pyglet.clock.schedule_interval(self.update, 1/(config['frame_rate']))
+        pyglet.clock.schedule_interval(self.update, 1/(config['update_rate']))
         while not self.isOver():
             pyglet.clock.tick()

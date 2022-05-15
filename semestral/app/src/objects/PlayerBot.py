@@ -26,7 +26,7 @@ class PlayerBot(Player):
     def reset_timer(self):
         self.bullet_timer = config['bot']['kill_cd']*(1 + random.random())
 
-    def can_see(self, target: Player, obstacles: set(Object)) -> bool:
+    def can_see(self, target: Player, obstacles: set) -> bool:
         """Method that checks if bot can see another Player
 
         Args:
