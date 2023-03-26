@@ -59,6 +59,8 @@ You can kill enemies by shooting them with bullets. However, it's not a good ide
 
 You are have 5 lives, you can see how many you currently have in the bottom-right corner. The cooldown on your *dash* ability is represented by a shade on your character.
 
+![screenshots](screenshots/Screenshot%20from%202023-03-26%2015-02-02.png)
+
 ## Tests
 
 Tests of basic features can be run using `pytest`.
