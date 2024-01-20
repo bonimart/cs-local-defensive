@@ -183,7 +183,7 @@ class Game:
                 if bot.can_see(p, seen_walls) and p.team != bot.team:
                     seen.add(p)
             if seen != set():
-                bot.target = random.sample(seen, 1)[0]
+                bot.target = random.sample(list(seen), 1)[0]
                 bot.state = "KILL"
 
         # bot is hunting the target
